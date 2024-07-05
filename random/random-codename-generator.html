@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Random Codename Generator</title>
+    <link rel="stylesheet" href="../css/hack.css">
+    <link rel="stylesheet" href="../css/dark-grey.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #36393f;
+            color: #fff;
+            margin: 0;
+        }
+
+        form {
+            background-color: #2f3136;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        button {
+            background-color: #08cda3;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 5px;
+            margin-top: 10px;
+            transition: background-color 0.3s;
+        }
+
+            button:hover {
+                background-color: #08af8b;
+            }
+
+        label {
+            color: #ddd;
+            display: block;
+            margin-top: 10px;
+        }
+
+        input[type="text"], input[type="checkbox"] {
+            background-color: #40444b;
+            color: #ddd;
+            border: none;
+            padding: 8px;
+            border-radius: 5px;
+            width: 100%;
+            margin-top: 5px;
+            box-sizing: border-box;
+        }
+
+        input[type="checkbox"] {
+            margin-top: 5px;
+        }
+
+        #codename {
+            color: #7289da;
+            cursor: pointer;
+        }
+
+            #codename:hover {
+                text-decoration: underline;
+                content: "Click to copy";
+            }
+    </style>
+</head>
+<body class="hack dark-grey">
+
+    <div class="main container">
+        <p><a href="./index.html">&laquo; Return to index</a></p>
+        <h1>Random codename generator</h1>
+        <p>Are you a clandestine department of a three-letter agency who wishes to create a cool new codename for your <a href="https://en.wikipedia.org/wiki/EternalBlue">super-secret project</a>? If so, this tool is for you!</p>
+        <form>
+            <p id="codename" onclick="navigator.clipboard.writeText(this.innerHTML);">codename</p>
+            <button type="button" onclick="generateCodename();">Generate Codename</button>
+            <br>
+            <label for="uppercaseCheckbox">Capitalise?</label><input type="checkbox" id="uppercaseCheckbox">
+            <br>
+            <label for="delimiter">Delimiter:</label>
+            <input type="text" id="delimiter" value="." maxlength="1" style="width:20px;">
+        </form>
+        </div>
+        <script>
+            // eda006.github.io
+            function contrastColor(color) {
+                let r, g, b;
+                if (color.startsWith("#")) {
+                    color = color.substring(1);
+                    r = parseInt(color.substring(0, 2), 16);
+                    g = parseInt(color.substring(2, 4), 16);
+                    b = parseInt(color.substring(4, 6), 16);
+                } else {
+                    const tempElem = document.createElement("div");
+                    tempElem.style.color = color;
+                    document.body.appendChild(tempElem);
+                    const computedColor = window.getComputedStyle(tempElem).color;
+                    document.body.removeChild(tempElem);
+                    const rgbMatch = computedColor.match(/\d+/g);
+                    r = parseInt(rgbMatch[0]);
+                    g = parseInt(rgbMatch[1]);
+                    b = parseInt(rgbMatch[2]);
+                }
+                const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+
+                return brightness > 128 ? "#000000" : "#FFFFFF";
+            }
+
+            const firstWords = [
+                "Eternal", "Impending", "Purple", "Dark", "Silent", "Swift", "Blazing",
+                "Crimson", "Mystic", "Shadow", "Radiant", "Thunder", "Iron", "Silver",
+                "Vengeful", "Savage", "Infinite", "Glorious", "Phantom", "Fiery",
+                "Ghostly", "Sacred", "Electric", "Neon", "Ancient", "Majestic",
+                "Stormy", "Fierce", "Lunar", "Celestial", "Cyber", "Solar"
+            ];
+
+            const colors = {
+                "Eternal": ["lightblue", contrastColor("lightblue")],
+                "Impending": ["gray", contrastColor("gray")],
+                "Purple": ["purple", contrastColor("purple")],
+                "Dark": ["midnightblue", contrastColor("midnightblue")],
+                "Silent": ["slategray", contrastColor("slategray")],
+                "Swift": ["skyblue", contrastColor("skyblue")],
+                "Blazing": ["orangered", contrastColor("orangered")],
+                "Crimson": ["crimson", contrastColor("crimson")],
+                "Mystic": ["mediumpurple", contrastColor("mediumpurple")],
+                "Shadow": ["dimgray", contrastColor("dimgray")],
+                "Radiant": ["gold", contrastColor("gold")],
+                "Thunder": ["darkslategray", contrastColor("darkslategray")],
+                "Iron": ["darkgray", contrastColor("darkgray")],
+                "Silver": ["silver", contrastColor("silver")],
+                "Vengeful": ["firebrick", contrastColor("firebrick")],
+                "Savage": ["darkred", contrastColor("darkred")],
+                "Infinite": ["deepskyblue", contrastColor("deepskyblue")],
+                "Glorious": ["goldenrod", contrastColor("goldenrod")],
+                "Phantom": ["indigo", contrastColor("indigo")],
+                "Fiery": ["orange", contrastColor("orange")],
+                "Ghostly": ["ghostwhite", contrastColor("ghostwhite")],
+                "Sacred": ["lightgoldenrodyellow", contrastColor("lightgoldenrodyellow")],
+                "Electric": ["#7DF9FF", contrastColor("#7DF9FF")],
+                "Neon": ["#39FF14", contrastColor("neongreen")],
+                "Ancient": ["burlywood", contrastColor("burlywood")],
+                "Majestic": ["royalblue", contrastColor("royalblue")],
+                "Stormy": ["steelblue", contrastColor("steelblue")],
+                "Fierce": ["red", contrastColor("red")],
+                "Lunar": ["lightgray", contrastColor("lightgray")],
+                "Celestial": ["lightcyan", contrastColor("lightcyan")],
+                "Cyber": ["cyan", contrastColor("cyan")],
+                "Solar": ["yellow", contrastColor("yellow")]
+            };
+
+            const secondWords = second_words = [
+                "Red", "Doom", "Nightmare", "Storm", "Genesis", "Frenzy", "Pulsar",
+                "Whisper", "Blade", "Echo", "Flame", "Horizon", "Blaze", "Specter",
+                "Fury", "Wrath", "Nova", "Vortex", "Chaos", "Havoc", "Eclipse",
+                "Reign", "Inferno", "Legacy", "Abyss", "Serenity", "Realm",
+                "Tempest", "Phantom", "Nebula", "Guardian", "Hunter", "Enigma",
+                "Specter", "Rogue", "Rift", "Mirage", "Titan", "Guardian", "Vengeance",
+                "Reaper", "Sentinel", "Wraith", "Omen", "Vendetta", "Savage",
+                "Radiance", "Ember", "Oracle", "Quantum", "Zenith", "Aegis", "Dusk",
+                "Spectral", "Warden", "Solstice", "Embrace", "Valor", "Cipher",
+                "Drifter", "Emissary", "Harbinger", "Protector", "Celestial", "Conquest", "Robot"
+            ]
+                ;
+            function generateCodename() {
+                var codenameArea = document.getElementById("codename");
+
+                var firstWord = firstWords[Math.floor(Math.random() * firstWords.length)];
+                var color = colors[firstWord];
+                var secondWord = secondWords[Math.floor(Math.random() * secondWords.length)];
+                let delimiter = document.getElementById("delimiter").value;
+                let codename = firstWord + delimiter + secondWord;
+
+                if (document.getElementById("uppercaseCheckbox").checked) {
+                    codename = codename.toUpperCase();
+                }
+                codenameArea.textContent = codename;
+                document.getElementById("codename").style = "background-color:" + color[0] + ";color:" + color[1];
+            }
+        </script>
+
+</body>
+</html>

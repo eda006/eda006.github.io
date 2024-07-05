@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dual EC backdoor</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/elliptic/6.5.4/elliptic.min.js" integrity="sha384-dKzTcfBx/HlmYiKTy+Z0wF5hnJ+rq0oM+n1ps0r9CuM5pLLhTg5QLBwfG32oNcVG" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="../css/hack.css">
+    <link rel="stylesheet" href="../css/dark-grey.css">
+    
+</head>
+<body class="hack dark-grey">
+
+    <div class="main container">
+        <p><a href="./index.html">&laquo; Return to index</a></p>
+        <h1>Make your own dual eliptic curve DRBG backdoor!</h1>
+        <img src="dualEC.png" width="500px">
+        <p>This page demonstrates a <a href="https://www.youtube.com/watch?v=nybVFJVXbww">dual eliptic curve backdoor</a> similar what is theorised to exist in <a href="https://en.wikipedia.org/wiki/Dual_EC_DRBG">Dual_EC_DRBG</a>. </p>
+        <div>
+            <h2>The random bit generator: </h2>
+            <fieldset class="form-group">
+                <label for="ECseed">Seed: </label>
+                <input type="text" id="ECseed" name="ECseed" size="60" value="0x34a714906a5876596de291b5e8973b6bb31f84ff3b3" class="form-control" style="width:500px" />
+            </fieldset>
+            <button onclick="exampleRandomValues();" class="btn btn-primary btn-block">Get 10 random values</button>
+            <ul id="demonstrationValuesContainer">
+            </ul>
+        </div>
+        <div>
+            <h2>The backdoor: </h2>
+            <p>Enter two consecutive outputs of the random bit generator. The algorithm will brute force the first two bytes, until it finds a valid rQ.</p>
+            <fieldset class="form-group">
+                <label for="value1">OUTPUT 1:</label>
+                <input id="value1" size="80" value="b5ca233d0663dd49c2bc6a374bdb06430814629cc595cd65e99f1f0f9e64" class="form-control" style="width:500px">
+            </fieldset>
+
+            <fieldset class="form-group">
+                <label for="value2">OUTPUT 2:</label>
+                <input id="value2" size="80" value="958dd4d87ea73e224c222266da8e02971553a4e1c7fd7d35545b40309519" class="form-control" style="width:500px">
+            </fieldset>
+
+            <br>
+            <button onclick="backdoorDemonatration();" class="btn btn-primary btn-block">Backdoor internal state - result->rQ->rP->s</button>
+            <br>
+            <br>
+            <div style="width:50%">
+                <div id="myProgress" class="progress-bar">
+                    <div id="myBar" class="progress-bar-filled"></div>
+                </div>
+            </div>
+
+            <ul id="progessAlerts">
+            </ul>
+        </div>
+    </div>
+    <script>
+        // eda006.github.io
+        const EC = elliptic.ec;
+        const ec = new EC('secp256k1');
+        const BN = elliptic.utils.BN;
+
+        var secret_e_value = BigInt('1231231123123123123123123123123123123123123123123123');
+
+        // base points P and Q
+
+        const Qx = 'b2b0cf548bed327addfcb313f6db591a1e3735140526b62673d608e4af88824d';
+        const Qy = 'fc636a42441c642c23d9a2de68c441b31e93a33bf9a415174b5b40f50ba48f21';
+        var Q = ec.curve.point(Qx, Qy);
+
+        const Px = '589e4e239dcf38a4433a892b3b6962940f2cfba75ce1062d0cfdf7bb5e96893b';
+        const Py = '9f4ac9b4cefea9f31b1ca67fe8354c4b307293627ccb9284d7b7eb9d820b54c7';
+        var P = ec.curve.point(Px, Py);
+
+        // Initial state
+        class DRBG {
+            constructor(state) {
+                this.state = state;
+            }
+            getRandomBits() {
+                //console.log("--------------------------------")
+
+                var sP = P.mul(this.state);
+                var r = sP.getX();
+                // update to the next state
+                var rP = P.mul(r);
+                this.state = BigInt(rP.getX());
+
+                // return rQ.x, these are are random bits
+                var rQ = Q.mul(r);
+                return rQ.getX().toString(16).substring(4);
+            }
+        }
+
+        function calcState(x_coord, secret_E) {
+            //console.log('0x' + x_coord);
+
+            const rQ = ec.curve.pointFromX(x_coord, false);
+            // caculate internal state by multiplication with secret E
+            const rP = rQ.mul(secret_E);
+            return rP.getX().toString(16);
+        }
+
+        function getValidPoints(truncated, truncated1, secret_E) {
+            var progressBar = document.getElementById("myBar");
+            progressBar.style.width = "0%";
+            var i = 0x0;
+            var c = 0;
+
+            function processChunk() {
+                const chunkSize = 200;
+                const end = Math.min(i + chunkSize, 0xffff + 1);
+
+                for (; i < end; i++) {
+                    const hex = i.toString(16).padStart(4, '0').toUpperCase();
+                    const possible_rQ = hex.concat(truncated);
+                    var point = null;
+
+                    try {
+                        point = ec.curve.pointFromX(possible_rQ, false);
+                    } catch (err) {
+                        continue;
+                    }
+                    // if point is valid, determine value of possible internal state corresponding to that point
+                    const backdooredState = calcState(possible_rQ, secret_E);
+                    // setup DRBG with this point as starting state
+                    var DRBGPossible = new DRBG(BigInt('0x' + backdooredState));
+                    const next_val = DRBGPossible.getRandomBits();
+
+                    if (next_val == truncated1) {
+                        progressBar.style.width = "100%";
+                        console.log("FOUND Internal state ", backdooredState);
+                        newProgressAlert("Found rQ=".concat(possible_rQ));
+                        newProgressAlert("Found next state rP=0x".concat(backdooredState));
+
+                        console.log("RQ is ", possible_rQ);
+                        return backdooredState;
+                    }
+
+                    if (i % 200 == 0) {
+                        progressBar.style.width = ((i) / 65536) * 100 + "%";
+                        console.log(i);
+                    }
+                }
+
+                if (i <= 0xffff) {
+                    setTimeout(processChunk, 0);
+                } else {
+                    console.log("done");
+                    console.log(c);
+                }
+            }
+
+            processChunk();
+        }
+
+        function exampleRandomValues() {
+            var seed_string = document.getElementById("ECseed").value;
+            const DRBG1 = new DRBG(BigInt(seed_string));
+            var container = document.getElementById("demonstrationValuesContainer");
+            container.innerHTML = "";
+            for (let i = 0; i < 10; i++) {
+
+                var x_truncated = DRBG1.getRandomBits();
+                console.log(x_truncated);
+                const para = document.createElement("li");
+                para.innerText = x_truncated;
+                container.appendChild(para);
+            }
+        };
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+        function newProgressAlert(message) {
+            var progessAlerts = document.getElementById("progessAlerts");
+            const para = document.createElement("li");
+            para.innerText = message;
+            progessAlerts.appendChild(para);
+        }
+        function backdoorDemonatration() {
+            var progessAlerts = document.getElementById("progessAlerts");
+            progessAlerts.innerHTML = "";
+            newProgressAlert("Brute forcing rQ truncation, two bytes 65536 values...");
+
+            var output_value1 = document.getElementById("value1").value;
+            var output_value2 = document.getElementById("value2").value;
+
+
+            setTimeout(function () {
+                var backdoored_state = getValidPoints(output_value1, output_value2, secret_e_value);
+            }, 100);
+
+        };
+
+        /*
+        const DRBG1 = new DRBG(BigInt('0x34a714906a5876596de291b5e8973b6bb31f84ff3b3'));
+        var x_truncated = DRBG1.getRandomBits();
+        var x_truncated1 = DRBG1.getRandomBits();
+        console.log("NEXT VALUE", x_truncated1);
+        console.log(x_truncated);
+        getValidPoints(x_truncated, x_truncated1, secret_e_value);
+        */
+
+            //const backdooredState = calcState(x, secret_e);
+            //console.log(backdooredState)
+
+
+
+            //const P = Q.mul(BigInt(secret_e));
+            //console.log(P.getX().toString(16));
+            //console.log(P.getY().toString(16));
+    </script>
+</body>
+</html>
