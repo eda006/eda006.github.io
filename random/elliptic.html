@@ -13,11 +13,17 @@
 
     <div class="main container">
         <p><a href="./index.html">&laquo; Return to index</a></p>
-        <h1>Make your own dual eliptic curve DRBG backdoor!</h1>
+        <h1>Make your own dual elliptic curve DRBG backdoor!</h1>
         <img src="dualEC.png" width="500px">
-        <p>This page demonstrates a <a href="https://www.youtube.com/watch?v=nybVFJVXbww">dual eliptic curve backdoor</a> similar what is theorised to exist in <a href="https://en.wikipedia.org/wiki/Dual_EC_DRBG">Dual_EC_DRBG</a>. </p>
+        <p>This page demonstrates a <a href="https://www.youtube.com/watch?v=nybVFJVXbww">dual elliptic curve backdoor</a> similar what is theorised to exist in <a href="https://en.wikipedia.org/wiki/Dual_EC_DRBG">Dual_EC_DRBG</a>. </p>
+        
+        <h2> Explaination</h2>
+        <p>Dual EC deterministic random bit generator is an algorithm to generate supposedly cryptographically secure random numbers from an initial seed. Every time a random number is generated, the internal state s is updated, as shown in the diagram. In theory, it should not be possible to determine this internal state by observing the output of the algorithm, however it became apparent (thanks to the work of <a href="https://en.wikipedia.org/wiki/Dual_EC_DRBG#Timeline_of_Dual_EC_DRBG">several cryptographers</a>) that if P and Q are carefully chosen - that is there is a secret e value linking them - then the process can trivially be reversed.</p>
+        <h2> How to use this</h2>
+        <p>Enter some seed in the random bit generator and click 'get 10 random values'. These are 10 consecutive random values from the algorithm. To perform the backdoor, copy two consecutive values (ideally the first and second output) into 'output 1' and 'output 2' and click 'Backdoor internal state'. Note that the backdoored internal state will not be the initial seed you entered, instead it is the updated internal state rP.x from after output 1 is generated. You can copy the rP.x back into seed of the random bit generator and the values generated should match, albeit offset.</p>
         <div>
-            <h2>The random bit generator: </h2>
+            <h1>The random bit generator: </h1>
+            <p>Seed is hex and should be prefixed with 0x</p>
             <fieldset class="form-group">
                 <label for="ECseed">Seed: </label>
                 <input type="text" id="ECseed" name="ECseed" size="60" value="0x34a714906a5876596de291b5e8973b6bb31f84ff3b3" class="form-control" style="width:500px" />
@@ -27,8 +33,8 @@
             </ul>
         </div>
         <div>
-            <h2>The backdoor: </h2>
-            <p>Enter two consecutive outputs of the random bit generator. The algorithm will brute force the first two bytes, until it finds a valid rQ.</p>
+            <h1>The backdoor: </h1>
+            <p>Copy two consecutive outputs of the random bit generator. Do <b>NOT</b> prefix with 0x. The algorithm will brute force the first two bytes, until it finds the right rQ. It will then use the secret e to calculate erQ, and since P=eQ it has calculated rP, the next internal state.</p>
             <fieldset class="form-group">
                 <label for="value1">OUTPUT 1:</label>
                 <input id="value1" size="80" value="b5ca233d0663dd49c2bc6a374bdb06430814629cc595cd65e99f1f0f9e64" class="form-control" style="width:500px">
@@ -43,9 +49,9 @@
             <button onclick="backdoorDemonatration();" class="btn btn-primary btn-block">Backdoor internal state - result->rQ->rP->s</button>
             <br>
             <br>
-            <div style="width:50%">
-                <div id="myProgress" class="progress-bar">
-                    <div id="myBar" class="progress-bar-filled"></div>
+            <div style="width:100%">
+                <div id="myProgress" class="progress-bar progress-bar-show-percent">
+                    <div id="myBar" class="progress-bar-filled" data-filled="Loading 0%"></div>
                 </div>
             </div>
 
@@ -105,6 +111,7 @@
             progressBar.style.width = "0%";
             var i = 0x0;
             var c = 0;
+            var percent_complete;
 
             function processChunk() {
                 const chunkSize = 200;
@@ -128,17 +135,21 @@
 
                     if (next_val == truncated1) {
                         progressBar.style.width = "100%";
+                        progressBar.setAttribute("data-filled", "COMPLETE");
                         console.log("FOUND Internal state ", backdooredState);
-                        newProgressAlert("Found rQ=".concat(possible_rQ));
-                        newProgressAlert("Found next state rP=0x".concat(backdooredState));
-
+                        newProgressAlert("Found rQ.x=".concat(possible_rQ));
+                        newProgressAlert("Found next state rP.x=0x".concat(backdooredState));
+                        newProgressAlert("COMPLETE.");
+                        alert("Brute force complete - internal state found");
                         console.log("RQ is ", possible_rQ);
                         return backdooredState;
                     }
 
                     if (i % 200 == 0) {
-                        progressBar.style.width = ((i) / 65536) * 100 + "%";
-                        console.log(i);
+                        percent_complete = Math.round(((i) / 65536) * 100);
+                        progressBar.style.width = percent_complete + "%";
+                        progressBar.setAttribute("data-filled", "Loading " + percent_complete + "%");
+                        //console.log(i);
                     }
                 }
 
@@ -179,7 +190,7 @@
         function backdoorDemonatration() {
             var progessAlerts = document.getElementById("progessAlerts");
             progessAlerts.innerHTML = "";
-            newProgressAlert("Brute forcing rQ truncation, two bytes 65536 values...");
+            newProgressAlert("Brute forcing rQ truncation. two bytes (65536 values) to brute force...");
 
             var output_value1 = document.getElementById("value1").value;
             var output_value2 = document.getElementById("value2").value;

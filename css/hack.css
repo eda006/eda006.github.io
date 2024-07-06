@@ -431,7 +431,7 @@ p {
     }
 
 .progress-bar-filled {
-    background-color: gray;
+    background-color: darkgreen;
     height: 100%;
     transition: width 0.3s ease;
     position: relative;
@@ -937,4 +937,8 @@ select.form-control {
     .form {
         width: 100%;
     }
+}
+
+#progessAlerts {
+    color:lightgreen;
 }
