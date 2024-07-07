@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discord webhook killer</title>
+    <link rel="stylesheet" href="../css/hack.css">
+    <link rel="stylesheet" href="../css/dark-grey.css">
+</head>
+<body class="hack dark-grey">
+
+    <div class="main container">
+        <p><a href="./index.html">&laquo; Return to index</a></p>
+        <h1>Discord webhook killer</h1>
+        <p>Discord webhooks are often used in scams/RATs. Use this tool to shut them down.</p>
+
+        <fieldset class="form-group form-success">
+            <p>Enter link to the webhook:</p>
+            <label for="webhook_link">Webhook link: </label>
+            <input name="webhook_link" id="webhook_link" class="form-control" style="width:80%" onchange="checkWebhookValid();">
+            <div class="alert alert-info" id="loading_alert_box" hidden>
+                <span class="loading"></span>
+                Checking webhook existance&hellip;
+            </div>
+        </fieldset>
+
+        <br>
+        <br>
+        <h1>Basic webhook spammer:</h1>
+        <fieldset class="form-group">
+            <label for="spam_username">Username: </label>
+            <input name="spam_username" id="spam_username" class="form-control" value="Username">
+            <br>
+            <!--e d a 0 0 6-->
+            <br>
+            <label for="spam_message">Message: </label>
+            <textarea name="spam_message" style="width:400px" id="spam_message" class="form-control" rows="5">Guys can you please not spam the chat. My mom bought me this new laptop and it gets really hot when the chat is being spamed. Now my leg is starting to hurt because it is getting so hot. Please, if you don't want me to get burned, then dont spam the chat    https://getwallpapers.com/wallpaper/full/1/e/4/890298-full-size-shrek-wallpapers-2560x1440.jpg  @everyone</textarea>
+            <div class="help-block">You can include links in the message and @everyone</div>
+            <br>
+            <label for="spam_avatar_url">Avatar url: </label>
+            <input name="spam_avatar_url" id="spam_avatar_url" class="form-control" value="https://getwallpapers.com/wallpaper/full/1/e/4/890298-full-size-shrek-wallpapers-2560x1440.jpg">
+            <br>
+            <label for="repetitions">Repetitions:</label>
+            <input type="number" name="repetitions" class="form-control" value="50" id="repetitions">
+            <div class="help-block">Number of times to send the message</div>
+            <br>
+            <label for="delayms">Delay (ms):</label>
+            <input type="number" name="delayms" class="form-control" value="400" id="delayms">
+            <div class="help-block">Low delay will result in rate limiting</div>
+            <button onclick="spamWebhook();" class="btn btn-primary btn-block">Spam!</button>
+            <ul id="progessAlerts">
+            </ul>
+        </fieldset>
+        <br>
+        <div hidden>
+            <h1>Intelligent webhook spammer:</h1>
+            <p>Let's say you have a nasty remote access trojan using a webhook. You can use this tool to 'poison' it's data by flooding it with fake info.</p>
+        </div>
+        <h1>Webhook killer:</h1>
+        <button onclick="killWebhook();" class="btn btn-error btn-block">Permanently delete webhook!</button>
+        <br>
+    </div>
+
+    <script>
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+        function newProgressAlert(message) {
+            var progessAlerts = document.getElementById("progessAlerts");
+            const para = document.createElement("li");
+            para.innerText = message;
+            progessAlerts.appendChild(para);
+        }
+
+        async function spamWebhook() {
+            var progessAlerts = document.getElementById("progessAlerts");
+            progessAlerts.innerHTML = "";
+
+            var repetitions = document.getElementById("repetitions").value;
+            var delay = document.getElementById("delayms").value;
+            var link = document.getElementById("webhook_link").value;
+            var username = document.getElementById("spam_username").value;
+            var message = document.getElementById("spam_message").value;
+            var avatar_url = document.getElementById("spam_avatar_url").value;
+
+            // add progress alert every: 
+            var alert_threshold = Math.floor(repetitions / 10);
+            if (alert_threshold > 50) {
+                alert_threshold = 50;
+            }
+            newProgressAlert("Started spamming...")
+
+            for (let i = 0; i < repetitions; i++) {
+                if ((i + 1) % alert_threshold == 0) {
+                    newProgressAlert((i+1) + " messages sent")
+                }
+                await sleep(delay);
+                
+                const request = new XMLHttpRequest();
+                request.open("POST", link);
+
+                request.setRequestHeader('Content-type', 'application/json');
+                var params = {
+                    username: username,
+                    avatar_url: avatar_url,
+                    content: message
+                }
+
+                request.send(JSON.stringify(params));
+            }
+        };
+        function killWebhook() {
+            var link = document.getElementById("webhook_link").value;
+            const request = new XMLHttpRequest();
+            request.open("DELETE", link);
+
+            request.onreadystatechange = function () {
+                if (request.readyState === XMLHttpRequest.DONE) {
+                    if (request.status == 200 || request.status == 204) {
+                        alert("Webhook deleted successfully");
+                    } else if (request.status == 404) {
+                        alert("Webhook not found");
+                    } else {
+                        alert("Error: " + request.status);
+                    }
+                }
+            };
+
+            request.send();
+        };
+
+
+        function checkWebhookValid() {
+            var alert_box = document.getElementById("loading_alert_box");
+            var link = document.getElementById("webhook_link").value;
+            alert_box.removeAttribute("hidden");
+            alert_box.setAttribute("class", "alert alert-info");
+            alert_box.innerHTML = '<span class="loading"></span>    Checking webhook existance &hellip;';
+
+            const request = new XMLHttpRequest();
+            request.open("GET", link);
+
+            request.send();
+
+            request.onload = function () {
+                console.log(request.responseText);
+                console.log(request.status);
+
+                if (request.status == 200) {
+                    let webhook_info = JSON.parse(request.responseText);
+                    console.log(webhook_info["url"])
+
+                    if (webhook_info["url"] != null) {
+                        alert_box.innerHTML = "Webhook exists - info:" + request.responseText;
+                        alert_box.setAttribute("class", "alert alert-success");
+                    }
+                }
+                else {
+                    let webhook_info = JSON.parse(request.responseText);
+                    alert_box.innerHTML = request.status + ": " + webhook_info["message"];
+                    alert_box.setAttribute("class", "alert alert-error");
+                }
+            }
+        }
+        // eda006.github.io
+    </script>
+</body>
+</html>
