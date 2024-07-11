@@ -941,4 +941,8 @@ select.form-control {
 
 #progessAlerts {
     color:lightgreen;
+
 }
+    #progessAlerts > li:after {
+        content: ">>> ";
+    }
