@@ -1,0 +1,42 @@
+#include <fxcg/display.h>
+#include <fxcg/keyboard.h>
+#include <fxcg/file.h>
+#include <fxcg/system.h>
+#include <fxcg/misc.h>
+#include <fxcg/heap.h>
+ 
+ 
+#define READWRITE 3
+int main(void) {
+    int key;
+ 
+    Bdisp_EnableColor(1);
+ 
+    int handle;
+    // read the binary
+    handle = Bfile_OpenFile_OS(u"\\\\fls0\\gameoflife.bin", READWRITE, 0);
+ 
+ 
+    int filesize = Bfile_GetFileSize_OS(handle);
+    char* file_bytes = (char*)sys_malloc(filesize * sizeof(char));
+ 
+    Bfile_ReadFile_OS(handle, file_bytes, filesize, 0);
+    Bfile_CloseFile_OS(handle);
+ 
+    // jump to start of object code
+    typedef int (*func_t)();
+    func_t func = (func_t)file_bytes;
+    int result = func();
+ 
+ 
+ 
+    while (1) {
+        GetKey(&key);
+ 
+        if (key == KEY_CTRL_EXIT) {
+            break;
+        }
+    }
+ 
+    return 0;
+}
